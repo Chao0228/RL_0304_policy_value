@@ -22,7 +22,7 @@ def evaluate():
     V = {(r, c): 0.0 for r in range(n) for c in range(n)}
     gamma = 0.9      # 折扣因子
     theta = 1e-4     # 收斂門檻
-    reward_step = -1 # 每走一步的懲罰
+    reward_step = -0.5 # 每走一步的懲罰
 
     # 1. 價值迭代 (Value Iteration) - 找出每個狀態的最佳價值
     while True:
@@ -62,7 +62,7 @@ def evaluate():
         if delta < theta:
             break
 
-    # 2. 提取最佳策略 (Extract Optimal Policy) - 根據算好的價值決定箭頭方向
+    # 2. 提取最佳策略 (Extract Optimal Policy)
     policy = {}
     for r in range(n):
         for c in range(n):
@@ -91,6 +91,37 @@ def evaluate():
             
             policy[state] = best_action
 
+    # 4. 追蹤最佳路徑 (Trace the optimal path from start to end)
+    optimal_path = []
+    current_state = start
+    max_steps = n * n  # 設定防呆機制，避免陷入無限迴圈
+
+    for _ in range(max_steps):
+        if current_state == end or current_state in obstacles:
+            break
+            
+        optimal_path.append(current_state)
+        
+        # 根據 policy 決定下一步
+        a = policy.get(current_state)
+        if a is None:
+            break
+            
+        dr, dc = actions[a]
+        next_r, next_c = current_state[0] + dr, current_state[1] + dc
+        
+        # 撞牆或出界則停止追蹤
+        if (next_r < 0 or next_r >= n or 
+            next_c < 0 or next_c >= n or 
+            (next_r, next_c) in obstacles):
+            break
+            
+        current_state = (next_r, next_c)
+        
+        # 如果走回曾經走過的格子，代表陷入死胡同迴圈，停止追蹤
+        if current_state in optimal_path:
+            break
+
     # 3. 格式化輸出資料供前端顯示
     formatted_policy = []
     formatted_values = []
@@ -113,7 +144,8 @@ def evaluate():
 
     return jsonify({
         'policy': formatted_policy,
-        'values': formatted_values
+        'values': formatted_values,
+        'optimal_path': optimal_path
     })
 
 if __name__ == '__main__':
