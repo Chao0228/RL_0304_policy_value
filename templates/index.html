@@ -12,9 +12,9 @@
             cursor: pointer; font-size: 16px; font-weight: bold; background-color: white;
             user-select: none;
         }
-        .start { background-color: #228B22; color: white; } /* 綠色起點 */
-        .end { background-color: #DC143C; color: white; }   /* 紅色終點 */
-        .obstacle { background-color: #696969; color: transparent; } /* 灰色障礙物 */
+        .start { background-color: #228B22; color: white; }
+        .end { background-color: #DC143C; color: white; }
+        .obstacle { background-color: #696969; color: transparent; }
         
         .results-section { display: flex; gap: 40px; margin-top: 30px; }
         .res-grid { display: grid; gap: 2px; width: fit-content; border: 2px solid #005A9C; background-color: #005A9C; }
@@ -25,13 +25,15 @@
         .res-obs { background-color: gray; }
         .highlight-start { border: 3px solid green; box-sizing: border-box; }
         .highlight-end { border: 3px solid red; box-sizing: border-box; }
+        /* 最佳路徑的背景色（淺綠色） */
+        .optimal-path { background-color: #90EE90 !important; }
     </style>
 </head>
 <body>
 
     <h2>Generate n x n Square</h2>
-    <label>Enter a number between 3 and 9: 
-        <input type="number" id="n-input" min="3" max="9" value="5">
+    <label>Enter a number between 5 and 9: 
+        <input type="number" id="n-input" min="5" max="9" value="5">
     </label>
     <button onclick="initGrid()">Generate Square</button>
 
@@ -58,12 +60,11 @@
 
         function initGrid() {
             n = parseInt(document.getElementById('n-input').value);
-            if (n < 3 || n > 9) {
-                alert("Please enter a valid number between 3 and 9.");
+            if (n < 5 || n > 9) {
+                alert("Please enter a valid number between 5 and 9.");
                 return;
             }
 
-            // 重置狀態
             step = 0; startCell = null; endCell = null; obstacles = [];
             document.getElementById('results').style.display = 'none';
             document.getElementById('instruction-text').innerText = "1. Click on a cell to set up the START grid as green.";
@@ -100,13 +101,12 @@
             } 
             else if (step === 2) {
                 if ((r === startCell[0] && c === startCell[1]) || (r === endCell[0] && c === endCell[1])) return;
-                if (obstacles.some(o => o[0] === r && o[1] === c)) return; // 避免重複點擊
+                if (obstacles.some(o => o[0] === r && o[1] === c)) return;
 
                 obstacles.push([r, c]);
                 cell.classList.add('obstacle');
                 document.getElementById('instruction-text').innerText = `3. Click to set ${n-2} OBSTACLES as gray. (${obstacles.length}/${n-2})`;
 
-                // 障礙物數量達到 n-2 時，自動觸發運算
                 if (obstacles.length === n - 2) {
                     step++;
                     document.getElementById('instruction-text').innerText = "Calculating Policy and Values...";
@@ -124,11 +124,11 @@
             .then(res => res.json())
             .then(data => {
                 document.getElementById('instruction-text').innerText = "Computation Complete!";
-                renderResults(data.values, data.policy);
+                renderResults(data.values, data.policy, data.optimal_path);
             });
         }
 
-        function renderResults(values, policy) {
+        function renderResults(values, policy, optimalPath) {
             document.getElementById('results').style.display = 'flex';
             const vGrid = document.getElementById('value-grid');
             const pGrid = document.getElementById('policy-grid');
@@ -151,6 +151,13 @@
                         vCell.innerText = values[r][c];
                         pCell.innerText = policy[r][c];
                         
+                        // 標記最佳路徑 (淺綠色)
+                        const isOptimal = optimalPath.some(pos => pos[0] === r && pos[1] === c);
+                        if (isOptimal) {
+                            vCell.classList.add('optimal-path');
+                            pCell.classList.add('optimal-path');
+                        }
+
                         // 標記起點與終點邊框以便對照
                         if (r === startCell[0] && c === startCell[1]) {
                             vCell.classList.add('highlight-start');
